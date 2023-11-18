@@ -1,0 +1,129 @@
+from ncclient import manager
+import xml.dom.minidom
+import requests
+
+m = manager.connect(
+    host="192.168.177.129",
+    port=830,
+    username="cisco",
+    password="cisco123!",
+    hostkey_verify=False
+)
+
+print("# Supported Capabilities (YANG models):")
+for capability in m.server_capabilities:
+    print(capability)
+
+netconf_reply = m.get_config(source="running")
+print(xml.dom.minidom.parseString(netconf_reply.xml).toprettyxml())
+
+netconf_hostname = """
+<config>
+  <native xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-native">
+     <hostname>MOD8_CSR1kv</hostname>
+  </native>
+</config>
+"""
+
+netconf_filter = """
+<filter>
+    <native xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-native" />
+</filter>
+"""
+netconf_reply = m.get_config(source="running", filter=netconf_filter)
+print(xml.dom.minidom.parseString(netconf_reply.xml).toprettyxml())
+
+netconf_reply = m.edit_config(target="running", config=netconf_hostname)
+print(xml.dom.minidom.parseString(netconf_reply.xml).toprettyxml())
+
+netconf_loopback = """
+<config>
+ <native xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-native">
+  <interface>
+   <Loopback>
+    <name>1</name>
+    <description>My NETCONF loopback</description>
+    <ip>
+     <address>
+      <primary>
+       <address>10.1.1.5</address>
+       <mask>255.255.0.0</mask>
+      </primary>
+     </address>
+    </ip>
+   </Loopback>
+   <Loopback>
+    <name>2</name>
+    <description>Another NETCONF loopback</description>
+    <ip>
+     <address>
+      <primary>
+       <address>10.10.2.7</address>
+       <mask>255.255.255.0</mask>
+      </primary>
+     </address>
+    </ip>
+   </Loopback>
+  </interface>
+ </native>
+</config>
+"""
+
+netconf_ospf = """
+            <config>
+                <native xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-native">
+                    <interface>
+                        <GigabitEthernet>
+                            <name>1</name>
+                            <ip>
+                                <ospf>
+                                    <process-id>1</process-id>
+                                    <area>
+                                        <area-id>0</area-id>
+                                        <network>192.168.177.0</network>
+                                    </area>
+                                </ospf>
+                            </ip>
+                        </GigabitEthernet>
+                    </interface>
+                </native>
+            </config>
+            """
+
+netconf_verify = """
+<filter>
+    <running />
+</filter>
+"""
+
+netconf_copyrunstart = """
+<rpc message-id="1" xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <copy-config>
+    <target>
+      <startup/>
+    </target>
+    <source>
+      <running/>
+    </source>
+  </copy-config>
+</rpc>
+"""
+
+access_token = 'ZTRmODE3ODItYTFmNS00NzEyLWJkNjctNTg0ZTgyNjMzOWQ2YzljOGRmNmItMzhi_P0A1_18f592ad-9e27-4e21-bdda-c79873a7f7cd'
+room_id = 'Y2lzY29zcGFyazovL3VybjpURUFNOnVzLXdlc3QtMl9yL1JPT00vMjg5YmM0NzAtODY0MC0xMWVlLThkNTEtNWZiYWEzZThkZTIy'
+message = 'Changes Pushed Successfully!'
+url = 'https://webexapis.com/v1/messages'
+headers = {
+ 'Authorization': 'Bearer {}'.format(access_token),
+ 'Content-Type': 'application/json'
+}
+params = {'roomId': room_id, 'markdown': message}
+res = requests.post(url, headers=headers, json=params)
+print(res.json())
+
+
+try:
+    netconf_reply = m.get_config(source="running", filter=netconf_verify)
+    print(xml.dom.minidom.parseString(netconf_reply.xml).toprettyxml())
+except Exception as e:
+    print(f"Error: {e}")
